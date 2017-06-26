@@ -30,18 +30,21 @@ def discount(x, gamma):
 def inverse_distance(h, h_i, epsilon=1e-3):
   return 1 / (torch.dist(h, h_i) + epsilon)
 
-def epsilon_schedule(EPS_END=0.05, EPS_START=0.95, EPS_DECAY=200):
+def epsilon_schedule(EPS_END=0.1, EPS_START=1.0):
   def schedule(t):
-    return EPS_END + (EPS_START - EPS_END) * math.exp(-1. * t / EPS_DECAY)
+    if t >= 250000:
+      return EPS_END
+    else:
+      return EPS_START - (EPS_START - EPS_END) * (t / 250000.0)
   return schedule
 
 class NECAgent:
   def __init__(self,
                env,
                embedding_network,
-               replay_memory=ReplayMemory(100000),
+               replay_memory=ReplayMemory(500000),
                epsilon_schedule=epsilon_schedule,
-               batch_size=32,
+               batch_size=8,
                sgd_learning_rate=1e-2,
                q_learning_rate=0.5,
                gamma=0.99,
@@ -49,9 +52,9 @@ class NECAgent:
                update_period=4,
                kernel=inverse_distance,
                num_neighbors=50,
-               max_memory=500000,
-               warmup_period=100,
-               test_period=None):
+               max_memory=125000,
+               warmup_period=1000,
+               test_period=10):
     """
     Instantiate an NEC Agent
 
@@ -126,9 +129,12 @@ class NECAgent:
     """
     Return the N-step Q-value lookahead from time t in the transition queue
     """
+    if self.before_learning:
+      lookahead = discount([transition.reward for transition in self.transition_queue[t:]], self.gamma)[0]
+      return Variable(Tensor([lookahead]))
     x = [transition.reward for transition in self.transition_queue[t:t+self.lookahead_horizon]]
     lookahead = discount(x, self.gamma)[0]
-    if len(self.transition_queue) > t + self.lookahead_horizon and not self.before_learning:
+    if len(self.transition_queue) > t + self.lookahead_horizon:
       state = self.transition_queue[t+self.lookahead_horizon-1].state
       state_embedding = self.embedding_network(Variable(Tensor(state)).unsqueeze(0))
       return self.gamma ** self.lookahead_horizon * torch.cat([dnd.lookup(state_embedding) for dnd in self.dnd_list]).max() + lookahead
@@ -141,6 +147,7 @@ class NECAgent:
     """
     return q_initial + self.q_learning_rate * (q_n - q_initial)
 
+  #@profile
   def update(self):
     """
     Iterate through the transition queue and make NEC updates
@@ -162,21 +169,22 @@ class NECAgent:
         Q = self.Q_update(dnd.get_value(state_embedding), Q_N)
         dnd.upsert(state_embedding, Q)
 
-      self.replay_memory.push(state, action, Q_N)
+      self.replay_memory.push((255 * state).byte(), action, Q_N)
 
       if t % self.update_period == 0 and not self.before_learning:
         # Train on random mini-batch from self.replay_memory
         batch = self.replay_memory.sample(self.batch_size)
         actual = torch.cat([sample.Q_N for sample in batch])
-        predicted = torch.cat([self.dnd_list[sample.action].lookup(self.embedding_network(sample.state)) for sample in batch])
+        predicted = torch.cat([self.dnd_list[sample.action].lookup(self.embedding_network(sample.state.float() / 255.0), True) for sample in batch])
         loss = torch.dist(actual, predicted)
         self.optimizer.zero_grad()
-        loss.backward(retain_graph=True)
+        loss.backward()
         self.optimizer.step()
 
     # Clear out transition queue
     self.transition_queue = []
 
+  #@profile
   def train(self):
     """
     Train an NEC agent
@@ -200,12 +208,14 @@ class NECAgent:
         self.update()
 
         if self.test_period is not None and num_episodes % self.test_period == 0:
-          print("Evaluation avg reward: {}".format(self.test()))
+          print("Evaluation avg reward at timestep {}: {}".format(t, self.test()))
           state = self.env.reset()
+          if num_episodes == 10:
+            return
  
       state_embedding = self.embedding_network(Variable(Tensor(state)).unsqueeze(0))
 
-  def test(self, nb_episodes=100, maximum_episode_length=500):
+  def test(self, nb_episodes=1, maximum_episode_length=5000000):
     def evaluate_episode():
       reward = 0
       observation = self.env.reset()
