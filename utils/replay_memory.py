@@ -2,6 +2,7 @@ import random
 
 from collections import namedtuple
 
+Transition = namedtuple('Transition', ('state', 'action', 'reward'))
 ReplayMemoryUnit = namedtuple('MemoryUnit', ('state', 'action', 'Q_N'))
 
 class ReplayMemory:
