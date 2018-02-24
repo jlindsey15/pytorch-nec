@@ -21,10 +21,10 @@ where GYM_ENV_ID is the environment ID of the [gym](http://github.com/openai/gym
 
 # Results
 
-![nec_pong_gif](./nec_pong.gif)
+![nec_pong_gif](./assets/nec_pong.gif)
 
 A game of Pong as played using the value function learned from a NEC agent
 
-![nec_pong_png](./nec_pong.png)
+![nec_pong_png](./assets/nec_pong.png)
 
 Plot of total reward per episode of Pong vs. episode number
