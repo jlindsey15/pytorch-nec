@@ -1,10 +1,7 @@
 import torch
-import numpy as np
 import torch.optim as optim
-from torch import Tensor
 from torch.nn import Parameter
 from pyflann import FLANN
-from utils.torch_utils import move_to_gpu
 
 class DND:
   def __init__(self, kernel, num_neighbors, max_memory, lr):

@@ -1,9 +1,9 @@
 import argparse
 import subprocess
-
 from itertools import count
-from models import DQN
 from tensorboard_logger import configure, log_value
+
+from models import DQN
 from nec_agent import NECAgent
 from utils.atari_wrapper import make_atari, wrap_deepmind
 

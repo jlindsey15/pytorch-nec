@@ -2,13 +2,13 @@
 This repo contains a PyTorch implementation of a [Neural Episodic Control](https://arxiv.org/abs/1703.01988) agent.
 
 # Environment Setup
-1. Install [conda](https://conda.io/docs/user-guide/install/index.html) for Python 2.7.
+1. Install [conda](https://www.anaconda.com/download) for Python 2.7.
 
 2.
 ```
-conda create --name nec --file conda_requirements.txt
+conda create --name nec --file requirements/conda_requirements.txt
 source activate nec
-pip install -r pip_requirements.txt
+pip install -r requirements/pip_requirements.txt
 ```
 
 3. Install [PyTorch](http://github.com/pytorch/pytorch).
