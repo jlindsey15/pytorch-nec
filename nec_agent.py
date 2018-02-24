@@ -1,11 +1,10 @@
 import random
 import torch
 import torch.optim as optim
-import numpy as np
-from dnd import DND
-from itertools import count
 from torch import Tensor
 from torch.autograd import Variable
+
+from dnd import DND
 from utils.math_utils import discount, inverse_distance
 from utils.replay_memory import Transition, ReplayMemory
 from utils.torch_utils import use_cuda, move_to_gpu
@@ -164,7 +163,7 @@ class NECAgent:
     while not done:
       state_embedding = self.embedding_network(move_to_gpu(Variable(Tensor(state)).unsqueeze(0)))
       action = self.choose_action(state_embedding)
-      next_state, reward, done, info = self.env.step(action)
+      next_state, reward, done, _ = self.env.step(action)
       self.transition_queue.append(Transition(state, action, reward))
       total_reward += reward
       state = next_state
@@ -180,7 +179,7 @@ class NECAgent:
     done = False
     while not done:
       action = random.randint(0, self.env.action_space.n - 1)
-      next_state, reward, done, info = self.env.step(action)
+      next_state, reward, done, _ = self.env.step(action)
       total_reward += reward
       self.transition_queue.append(Transition(state, action, reward))
       state = next_state
