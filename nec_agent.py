@@ -9,6 +9,7 @@ from utils.math_utils import discount, inverse_distance
 from utils.replay_memory import Transition, ReplayMemory
 from utils.torch_utils import use_cuda, move_to_gpu
 
+
 class NECAgent:
   def __init__(self,
                env,
@@ -78,8 +79,10 @@ class NECAgent:
     self.update_period = update_period
 
     self.transition_queue = []
-    self.optimizer = optim.RMSprop(self.embedding_network.parameters(), lr=sgd_lr)
-    self.dnd_list = [DND(kernel, num_neighbors, max_memory, sgd_lr) for _ in range(env.action_space.n)]
+    self.optimizer = optim.RMSprop(
+        self.embedding_network.parameters(), lr=sgd_lr)
+    self.dnd_list = [DND(kernel, num_neighbors, max_memory, sgd_lr)
+                     for _ in range(env.action_space.n)]
 
   def choose_action(self, state_embedding):
     """
@@ -98,12 +101,15 @@ class NECAgent:
     Return the N-step Q-value lookahead from time t in the transition queue
     """
     if warmup or len(self.transition_queue) <= t + self.lookahead_horizon:
-      lookahead = discount([transition.reward for transition in self.transition_queue[t:]], self.gamma)[0]
+      lookahead = discount(
+          [transition.reward for transition in self.transition_queue[t:]], self.gamma)[0]
       return Variable(Tensor([lookahead]))
     else:
-      lookahead = discount([transition.reward for transition in self.transition_queue[t:t+self.lookahead_horizon]], self.gamma)[0]
+      lookahead = discount(
+          [transition.reward for transition in self.transition_queue[t:t+self.lookahead_horizon]], self.gamma)[0]
       state = self.transition_queue[t+self.lookahead_horizon].state
-      state_embedding = self.embedding_network(move_to_gpu(Variable(Tensor(state)).unsqueeze(0)))
+      state_embedding = self.embedding_network(
+          move_to_gpu(Variable(Tensor(state)).unsqueeze(0)))
       return self.gamma ** self.lookahead_horizon * torch.cat([dnd.lookup(state_embedding) for dnd in self.dnd_list]).max() + lookahead
 
   def Q_update(self, q_initial, q_n):
@@ -130,7 +136,8 @@ class NECAgent:
       else:
         Q = self.Q_update(dnd.values[embedding_index], Q_N)
         dnd.update(Q.detach(), embedding_index)
-      self.replay_memory.push(transition.state, action, move_to_gpu(Q_N.detach()))
+      self.replay_memory.push(transition.state, action,
+                              move_to_gpu(Q_N.detach()))
 
     [dnd.commit_insert() for dnd in self.dnd_list]
 
@@ -139,7 +146,8 @@ class NECAgent:
         # Train on random mini-batch from self.replay_memory
         batch = self.replay_memory.sample(self.batch_size)
         actual = torch.cat([sample.Q_N for sample in batch])
-        predicted = torch.cat([self.dnd_list[sample.action].lookup(self.embedding_network(move_to_gpu(Variable(Tensor(sample.state))).unsqueeze(0)), update_flag=True) for sample in batch])
+        predicted = torch.cat([self.dnd_list[sample.action].lookup(self.embedding_network(move_to_gpu(
+            Variable(Tensor(sample.state))).unsqueeze(0)), update_flag=True) for sample in batch])
         loss = torch.dist(actual, move_to_gpu(predicted))
         self.optimizer.zero_grad()
         loss.backward()
@@ -161,7 +169,8 @@ class NECAgent:
     total_reward = 0
     done = False
     while not done:
-      state_embedding = self.embedding_network(move_to_gpu(Variable(Tensor(state)).unsqueeze(0)))
+      state_embedding = self.embedding_network(
+          move_to_gpu(Variable(Tensor(state)).unsqueeze(0)))
       action = self.choose_action(state_embedding)
       next_state, reward, done, _ = self.env.step(action)
       self.transition_queue.append(Transition(state, action, reward))

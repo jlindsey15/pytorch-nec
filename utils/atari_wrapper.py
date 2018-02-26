@@ -4,6 +4,7 @@ import gym
 from gym import spaces
 import cv2
 
+
 class NoopResetEnv(gym.Wrapper):
   def __init__(self, env, noop_max=30):
     """Sample initial states by taking random number of no-ops on reset.
@@ -25,7 +26,8 @@ class NoopResetEnv(gym.Wrapper):
     if self.override_num_noops is not None:
       noops = self.override_num_noops
     else:
-      noops = self.unwrapped.np_random.randint(1, self.noop_max + 1) #pylint: disable=E1101
+      noops = self.unwrapped.np_random.randint(
+          1, self.noop_max + 1)  # pylint: disable=E1101
     assert noops > 0
     obs = None
     for _ in range(noops):
@@ -33,6 +35,7 @@ class NoopResetEnv(gym.Wrapper):
       if done:
         obs = self.env.reset(**kwargs)
     return obs
+
 
 class FireResetEnv(gym.Wrapper):
   def __init__(self, env):
@@ -50,6 +53,7 @@ class FireResetEnv(gym.Wrapper):
     if done:
       self.env.reset(**kwargs)
     return obs
+
 
 class EpisodicLifeEnv(gym.Wrapper):
   def __init__(self, env):
@@ -87,6 +91,7 @@ class EpisodicLifeEnv(gym.Wrapper):
     self.lives = self.env.unwrapped.ale.lives()
     return obs
 
+
 class MaxAndSkipEnv(gym.Wrapper):
   def __init__(self, env, skip=4):
     """Return only every `skip`-th frame"""
@@ -117,10 +122,12 @@ class MaxAndSkipEnv(gym.Wrapper):
       obs_buffer.append(obs)
     return np.concatenate(obs_buffer, axis=0)
 
+
 class ClipRewardEnv(gym.RewardWrapper):
   def _reward(self, reward):
     """Bin reward to {+1, 0, -1} by its sign."""
     return np.sign(reward)
+
 
 class WarpFrame(gym.ObservationWrapper):
   def __init__(self, env):
@@ -128,12 +135,15 @@ class WarpFrame(gym.ObservationWrapper):
     gym.ObservationWrapper.__init__(self, env)
     self.width = 84
     self.height = 84
-    self.observation_space = spaces.Box(low=0, high=255, shape=(self.height, self.width, 1))
+    self.observation_space = spaces.Box(
+        low=0, high=255, shape=(self.height, self.width, 1))
 
   def _observation(self, frame):
     frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-    frame = cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
+    frame = cv2.resize(frame, (self.width, self.height),
+                       interpolation=cv2.INTER_AREA)
     return frame[:, :, None].transpose(2, 0, 1)
+
 
 class FrameStack(gym.Wrapper):
   def __init__(self, env, k):
@@ -149,7 +159,8 @@ class FrameStack(gym.Wrapper):
     self.k = k
     self.frames = deque([], maxlen=k)
     shp = env.observation_space.shape
-    self.observation_space = spaces.Box(low=0, high=255, shape=(shp[0], shp[1], shp[2] * k))
+    self.observation_space = spaces.Box(
+        low=0, high=255, shape=(shp[0], shp[1], shp[2] * k))
 
   def _reset(self):
     ob = self.env.reset()
@@ -166,6 +177,7 @@ class FrameStack(gym.Wrapper):
     assert len(self.frames) == self.k
     return LazyFrames(list(self.frames))
 
+
 class DealiasPongActions(gym.Wrapper):
   def __init__(self, env):
     gym.Wrapper.__init__(self, env)
@@ -177,11 +189,13 @@ class DealiasPongActions(gym.Wrapper):
     else:
       return self.env.step(3)
 
+
 class ScaledFloatFrame(gym.ObservationWrapper):
   def _observation(self, observation):
     # careful! This undoes the memory optimization, use
     # with smaller replay buffers only.
     return np.array(observation).astype(np.float32) / 255.0
+
 
 class LazyFrames(object):
   def __init__(self, frames):
@@ -200,6 +214,7 @@ class LazyFrames(object):
       out = out.astype(dtype)
     return out
 
+
 def make_atari(env_id):
   env = gym.make(env_id)
   assert 'NoFrameskip' in env.spec.id
@@ -207,6 +222,7 @@ def make_atari(env_id):
   if 'Pong' in env_id:
     env = DealiasPongActions(env)
   return env
+
 
 def wrap_deepmind(env, episode_life=True, clip_rewards=True, frame_stack=False, scale=False):
   """Configure environment for DeepMind-style Atari.

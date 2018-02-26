@@ -3,6 +3,7 @@ import torch.optim as optim
 from torch.nn import Parameter
 from pyflann import FLANN
 
+
 class DND:
   def __init__(self, kernel, num_neighbors, max_memory, lr):
     self.kernel = kernel
@@ -61,8 +62,10 @@ class DND:
       self.keys_to_be_inserted = key.data
       self.values_to_be_inserted = value.data
     else:
-      self.keys_to_be_inserted = torch.cat([self.keys_to_be_inserted, key.data], 0)
-      self.values_to_be_inserted = torch.cat([self.values_to_be_inserted, value.data], 0)
+      self.keys_to_be_inserted = torch.cat(
+          [self.keys_to_be_inserted, key.data], 0)
+      self.values_to_be_inserted = torch.cat(
+          [self.values_to_be_inserted, value.data], 0)
     self.key_cache[tuple(key.data.cpu().numpy()[0])] = 0
     self.stale_index = True
 
@@ -71,13 +74,17 @@ class DND:
       self.keys = Parameter(self.keys_to_be_inserted)
       self.values = Parameter(self.values_to_be_inserted)
     elif self.keys_to_be_inserted is not None:
-      self.keys = Parameter(torch.cat([self.keys.data, self.keys_to_be_inserted], 0))
-      self.values = Parameter(torch.cat([self.values.data, self.values_to_be_inserted], 0))
+      self.keys = Parameter(
+          torch.cat([self.keys.data, self.keys_to_be_inserted], 0))
+      self.values = Parameter(
+          torch.cat([self.values.data, self.values_to_be_inserted], 0))
 
     # Move most recently used key-value pairs to the back
     if len(self.move_to_back) != 0:
-      self.keys = Parameter(torch.cat([self.keys.data[list(set(range(len(self.keys))) - self.move_to_back)], self.keys.data[list(self.move_to_back)]], 0))
-      self.values = Parameter(torch.cat([self.values.data[list(set(range(len(self.values))) - self.move_to_back)], self.values.data[list(self.move_to_back)]], 0))
+      self.keys = Parameter(torch.cat([self.keys.data[list(set(range(len(
+          self.keys))) - self.move_to_back)], self.keys.data[list(self.move_to_back)]], 0))
+      self.values = Parameter(torch.cat([self.values.data[list(set(range(len(
+          self.values))) - self.move_to_back)], self.values.data[list(self.move_to_back)]], 0))
       self.move_to_back = set()
 
     if len(self.keys) > self.max_memory:
@@ -97,7 +104,8 @@ class DND:
     Perform DND lookup
     If update_flag == True, add the nearest neighbor indexes to self.indexes_to_be_updated
     """
-    lookup_indexes = self.kdtree.nn_index(lookup_key.data.cpu().numpy(), min(self.num_neighbors, len(self.keys)))[0][0]
+    lookup_indexes = self.kdtree.nn_index(
+        lookup_key.data.cpu().numpy(), min(self.num_neighbors, len(self.keys)))[0][0]
     output = 0
     kernel_sum = 0
     for i, index in enumerate(lookup_indexes):
