@@ -11,7 +11,7 @@ source activate nec
 pip install -r requirements/pip_requirements.txt
 ```
 
-3. Install [PyTorch](http://github.com/pytorch/pytorch).
+3. Install [PyTorch](http://github.com/pytorch/pytorch) from source at commit eff5b8b.
 
 # Usage
 ```
